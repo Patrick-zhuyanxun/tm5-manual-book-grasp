@@ -1,0 +1,64 @@
+manual_book_grasp:
+  ros__parameters:
+    motion_enabled: false
+    confirm_before_motion: true
+    # The operator outlines the target book once on the initial frame. The
+    # capture-time TF must stay buffered while the operator works, so
+    # tf_buffer_cache_s must exceed this timeout by at least 30 s.
+    manual_selection_timeout_s: 300.0
+    tf_buffer_cache_s: 360.0
+    # Reject an outline whose left/right extent touches the image border; a
+    # clipped side would turn the image edge into a false book seam.
+    outline_border_margin_px: 2
+    minimum_mask_pixels: 500
+    debug_output_dir: /tmp
+    debug_overlay_topic: /manual_book_grasp/debug_overlay
+    use_aruco_orientation: true
+    aruco_dictionary: DICT_4X4_50
+    aruco_target_id: 0
+    aruco_marker_length_m: 0.050
+    aruco_max_reprojection_error_px: 2.0
+    aruco_min_side_px: 20.0
+    # ArUco directed -Z is the insertion-axis ground truth. If the detected
+    # spine is perpendicular to it within 10 deg, let the spine define tool Y
+    # and use the spine-constrained angle. Above 10 deg, preserve ArUco -Z
+    # exactly and project only the spine to obtain an orthogonal tool Y.
+    aruco_book_spine_trust_max_error_deg: 10.0
+    # Keep detection/support/pose/reprojection ArUco hard gates unchanged. If
+    # one timestamped ArUco observation fails, use up to three newer
+    # synchronized RGB-D frames with the re-projected target outline before
+    # failing closed. Spine disagreement alone selects ArUco ground truth
+    # above; it is not an observation failure.
+    aruco_retry_count: 3
+    aruco_retry_frame_timeout_s: 3.0
+    color_info_topic: /camera/camera/color/camera_info
+    color_image_topic: /camera/camera/color/image_raw
+    depth_image_topic: /camera/camera/aligned_depth_to_color/image_raw
+    depth_unit_scale_m: 0.001
+    # Every pose-target PTP searches collision-aware IK outputs and sends at
+    # most four globally distinct explicit joint targets to Pilz: the initial
+    # candidate plus three retries. It collects all legal plans in that budget
+    # and selects the minimum cumulative J1--J6 trajectory travel. Hard J5/J6
+    # checks never relax.
+    planning_retry_count: 3
+    ptp_ik_max_seed_attempts: 20
+    ptp_ik_seed_step_deg: 45.0
+    ptp_ik_timeout_s: 0.20
+    ptp_unique_solution_tolerance_deg: 0.05
+    # After reaching stand-off, discard the moving-camera interval and accept
+    # only observations captured after this stabilization delay. The stand-off
+    # mask is the base-frame outline re-projected through TF, so its tool +X
+    # correction is expected to be near zero (validation gate only).
+    fine_perception_settle_s: 1.5
+    # Move the insertion point 15 mm upward from the robust seam midpoint
+    # along the selected upward book-spine direction.
+    target_spine_up_offset_m: 0.015
+    approach_standoff_m: 0.070
+    insert_depth_m: 0.102
+    # 172 mm initial insertion travel (70 mm stand-off plus 102 mm into the
+    # gap), immediate H/T, then 232 mm final LIN travel (172 mm back to the
+    # approach point plus 60 mm extra clearance).
+    extract_extra_m: 0.060
+    final_lift_m: 0.040
+    minimum_spine_up_component: 0.20
+    confirm_before_release: true

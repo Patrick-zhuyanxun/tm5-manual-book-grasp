@@ -1,0 +1,4 @@
+[submodule "src/tmr_ros2"]
+	path = src/tmr_ros2
+	url = https://github.com/Patrick-zhuyanxun/tmr_ros2.git
+	branch = tm5-manual-book-grasp

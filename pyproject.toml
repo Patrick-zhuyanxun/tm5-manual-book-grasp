@@ -1,0 +1,29 @@
+[project]
+name = "tm5-manual-book-grasp"
+version = "0.1.0"
+description = "Manual-outline, ArUco-oriented book grasping for TM5-700 + D435i (ROS 2 Humble)."
+readme = "README.md"
+license = "Apache-2.0"
+# ROS 2 Humble's rclpy/cv_bridge are built for the Ubuntu 22.04 system
+# Python 3.10. The venv must use that interpreter with system site-packages
+# (see scripts/setup.sh), so only pure-Python/pip dependencies live here.
+requires-python = "==3.10.*"
+dependencies = [
+    # cv_bridge is compiled against the system NumPy 1.x ABI.
+    "numpy>=1.21,<2",
+    # Contrib build keeps cv2.aruco.estimatePoseSingleMarkers.
+    "opencv-contrib-python>=4.8,<4.14",
+    "scipy>=1.8,<1.16",
+    "pyserial>=3.5",
+]
+
+[dependency-groups]
+dev = ["pytest>=7"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# ROS Humble's system launch_testing plugins use pre-pytest-8 hook signatures.
+addopts = "-p no:launch_testing -p no:launch_ros -p no:launch_pytest"

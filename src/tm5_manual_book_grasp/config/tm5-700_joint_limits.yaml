@@ -1,0 +1,54 @@
+# Project-local TM5-700 limits for planners that require acceleration values.
+#
+# Velocity limits match Techman's tm5-700_moveit_config.  The upstream file
+# leaves acceleration undefined, which OMPL tolerates by falling back to
+# 1 rad/s^2 but Pilz PTP rejects.  We make that same conservative fallback
+# explicit here; the runtime request still applies 0.10 velocity/acceleration
+# scaling during commissioning.
+default_velocity_scaling_factor: 0.1
+default_acceleration_scaling_factor: 0.1
+
+joint_limits:
+  joint_1:
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+  joint_2:
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+  joint_3:
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+  joint_4:
+    has_velocity_limits: true
+    max_velocity: 3.9269908169872414
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+  joint_5:
+    # Physical commissioning range after the TM integrated camera was
+    # inverted. Keep this restriction even though the known link_4/link_6
+    # camera-housing mesh overlap is ignored in the SRDF.
+    has_position_limits: true
+    min_position: 0.0
+    max_position: 1.9198621771937625  # 110 degrees
+    has_velocity_limits: true
+    max_velocity: 3.9269908169872414
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+  joint_6:
+    # TM5-700 vendor URDF defines J6 as bounded revolute, not continuous.
+    # Repeat the URDF hard range here so every MoveIt planner has the same
+    # explicit position constraint and cannot accept an equivalent +360 deg
+    # wrist representation as an unbounded solution.
+    has_position_limits: true
+    min_position: -4.71238898038469  # -270 degrees
+    max_position: 4.71238898038469   # +270 degrees
+    has_velocity_limits: true
+    max_velocity: 3.9269908169872414
+    has_acceleration_limits: true
+    max_acceleration: 1.0

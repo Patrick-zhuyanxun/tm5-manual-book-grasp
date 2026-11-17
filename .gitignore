@@ -1,0 +1,10 @@
+# colcon
+/build/
+/install/
+/log/
+# uv
+/.venv/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Semantic model for the TM5-700 with the project gripper and wrist D435i.
+  Arm groups, states, and arm collision exclusions come from the official
+  tm5-700_moveit_config SRDF. No TM12X application poses are carried over.
+-->
+<robot name="tm5-700_with_gripper">
+    <group name="tmr_arm">
+        <chain base_link="base" tip_link="flange" />
+    </group>
+
+    <!-- Official TM5-700 generic states only; application poses need reteaching. -->
+    <group_state name="home" group="tmr_arm">
+        <joint name="joint_1" value="0" />
+        <joint name="joint_2" value="0" />
+        <joint name="joint_3" value="0" />
+        <joint name="joint_4" value="0" />
+        <joint name="joint_5" value="0" />
+        <joint name="joint_6" value="0" />
+    </group_state>
+    <group_state name="ready1" group="tmr_arm">
+        <joint name="joint_1" value="0" />
+        <joint name="joint_2" value="0" />
+        <joint name="joint_3" value="1.5708" />
+        <joint name="joint_4" value="0" />
+        <joint name="joint_5" value="1.5708" />
+        <joint name="joint_6" value="0" />
+    </group_state>
+    <group_state name="ready2" group="tmr_arm">
+        <joint name="joint_1" value="0" />
+        <joint name="joint_2" value="0" />
+        <joint name="joint_3" value="1.5708" />
+        <joint name="joint_4" value="-1.5708" />
+        <joint name="joint_5" value="1.5708" />
+        <joint name="joint_6" value="0" />
+    </group_state>
+    <group_state name="ready3" group="tmr_arm">
+        <joint name="joint_1" value="0" />
+        <joint name="joint_2" value="0" />
+        <joint name="joint_3" value="1.5708" />
+        <joint name="joint_4" value="1.5708" />
+        <joint name="joint_5" value="1.5708" />
+        <joint name="joint_6" value="0" />
+    </group_state>
+
+    <virtual_joint name="FixedBase" type="fixed" parent_frame="world" child_link="base" />
+
+    <!-- Official TM5-700 self-collision matrix. -->
+    <disable_collisions link1="link_0" link2="link_1" reason="Adjacent" />
+    <disable_collisions link1="link_0" link2="link_2" reason="Never" />
+    <disable_collisions link1="link_1" link2="link_2" reason="Adjacent" />
+    <disable_collisions link1="link_1" link2="link_4" reason="Never" />
+    <disable_collisions link1="link_2" link2="link_3" reason="Adjacent" />
+    <disable_collisions link1="link_3" link2="link_4" reason="Adjacent" />
+    <disable_collisions link1="link_4" link2="link_5" reason="Adjacent" />
+    <!-- TM's integrated-camera housing is part of link_6 and produces a
+         known model overlap with link_4. Physical clearance is enforced by
+         the project joint_5 position limit (0..110 deg), not by this mesh. -->
+    <disable_collisions link1="link_4" link2="link_6" reason="Never" />
+    <disable_collisions link1="link_5" link2="link_6" reason="Adjacent" />
+
+    <!-- Robot wrist and gripper fixed/adjacent links. -->
+    <disable_collisions link1="link_6" link2="flange" reason="Adjacent" />
+    <disable_collisions link1="flange" link2="gripper_flange" reason="Adjacent" />
+    <disable_collisions link1="gripper_flange" link2="assembly_3" reason="Adjacent" />
+    <disable_collisions link1="assembly_3" link2="gripper_jaw" reason="Adjacent" />
+    <disable_collisions link1="gripper_jaw" link2="assembly_2" reason="Adjacent" />
+    <disable_collisions link1="gripper_flange" link2="closing_gripper_2" reason="Adjacent" />
+    <disable_collisions link1="gripper_flange" link2="closing_gripper_2_z" reason="Adjacent" />
+    <disable_collisions link1="gripper_flange" link2="gripper_tip" reason="Adjacent" />
+    <disable_collisions link1="assembly_2" link2="closing_gripper_1" reason="Adjacent" />
+    <disable_collisions link1="assembly_2" link2="closing_gripper_1_z" reason="Adjacent" />
+
+    <!-- Nearby gripper links that overlap in the CAD-derived collision model. -->
+    <disable_collisions link1="link_5" link2="flange" reason="Never" />
+    <disable_collisions link1="link_5" link2="gripper_flange" reason="Never" />
+    <disable_collisions link1="link_6" link2="gripper_flange" reason="Never" />
+    <disable_collisions link1="link_6" link2="assembly_3" reason="Never" />
+    <disable_collisions link1="flange" link2="assembly_3" reason="Never" />
+    <disable_collisions link1="gripper_flange" link2="gripper_jaw" reason="Never" />
+    <disable_collisions link1="gripper_flange" link2="assembly_2" reason="Never" />
+    <disable_collisions link1="assembly_3" link2="assembly_2" reason="Never" />
+    <disable_collisions link1="gripper_jaw" link2="closing_gripper_1" reason="Never" />
+    <disable_collisions link1="gripper_jaw" link2="closing_gripper_1_z" reason="Never" />
+
+    <!-- Dummy TCP/measurement frames have no collision geometry. -->
+    <disable_collisions link1="gripper_tip" link2="gripper_jaw" reason="Never" />
+    <disable_collisions link1="gripper_tip" link2="assembly_2" reason="Never" />
+    <disable_collisions link1="gripper_tip" link2="assembly_3" reason="Never" />
+    <disable_collisions link1="gripper_tip" link2="closing_gripper_1" reason="Never" />
+    <disable_collisions link1="gripper_tip" link2="closing_gripper_1_z" reason="Never" />
+    <disable_collisions link1="gripper_tip" link2="closing_gripper_2" reason="Never" />
+    <disable_collisions link1="gripper_tip" link2="closing_gripper_2_z" reason="Never" />
+
+    <!-- Wrist camera mount and its collision-bearing camera body. -->
+    <disable_collisions link1="gripper_flange" link2="camera_link" reason="Never" />
+    <disable_collisions link1="gripper_flange" link2="cam_mount" reason="Never" />
+    <disable_collisions link1="assembly_3" link2="camera_link" reason="Never" />
+    <disable_collisions link1="assembly_3" link2="cam_mount" reason="Never" />
+    <disable_collisions link1="cam_mount" link2="camera_link" reason="Adjacent" />
+    <disable_collisions link1="flange" link2="camera_link" reason="Never" />
+    <disable_collisions link1="flange" link2="cam_mount" reason="Never" />
+</robot>
