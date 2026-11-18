@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manual Book Grasp — TM5-700 安裝與操作手冊</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#1f2937; --bg:#f8fafc; --card:#fff; --line:#cbd5e1; --accent:#075985; --warn:#9a3412; --warn-bg:#fff7ed; --code:#0f172a; }
+    * { box-sizing:border-box; }
+    body { max-width:980px; margin:auto; padding:2rem 1.25rem 4rem; font:16px/1.65 system-ui,-apple-system,"Noto Sans TC",sans-serif; color:var(--ink); background:var(--bg); }
+    h1,h2 { line-height:1.25; } h1 { border-bottom:3px solid var(--accent); padding-bottom:.4rem; } h2 { margin-top:2.5rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+    pre { position:relative; overflow:auto; padding:1rem; border-radius:8px; background:var(--code); color:#e2e8f0; } code,pre { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .copy-button { position:absolute; top:.55rem; right:.65rem; padding:.3rem .7rem; border:1px solid #64748b; border-radius:6px; color:#e2e8f0; background:#334155; cursor:pointer; font:13px/1.4 system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+    .copy-button:hover { background:#475569; } .notice,.info { border-left:5px solid var(--warn); padding:.9rem 1rem; background:var(--warn-bg); } .info { border-left-color:#0369a1; background:#f0f9ff; }
+    nav { padding:1rem 1.25rem; border:1px solid var(--line); border-radius:8px; background:var(--card); } nav ol { columns:2; } a { color:var(--accent); } li { margin:.35rem 0; }
+    table { width:100%; border-collapse:collapse; } th,td { border:1px solid var(--line); padding:.65rem; text-align:left; vertical-align:top; } th { background:#e0f2fe; }
+    kbd { padding:.05rem .35rem; border:1px solid var(--line); border-radius:4px; background:var(--card); font-size:.9em; }
+    @media (prefers-color-scheme:dark) { :root { --ink:#e5e7eb; --bg:#111827; --card:#1f2937; --line:#475569; --warn-bg:#431407; --code:#020617; --accent:#7dd3fc; } th { background:#0c4a6e; } .info { background:#082f49; } }
+  </style>
+</head>
+<body>
+  <h1>Manual Book Grasp — TM5-700 安裝與操作手冊</h1>
+  <p>手動四角框選目標書 → ArUco 決定插入方向 → TM5-700 插入書縫夾取。沒有語言查詢與書本辨識。本頁所有指令都假設 repo clone 在 <code>~/tm5-manual-book-grasp</code>；若放在其他位置，請把每段開頭的 <code>cd</code> 改成實際路徑。</p>
+  <aside class="notice"><strong>尚未完成 TM5 實機驗收。</strong>任何可能移動手臂的操作都要有人在現場、急停可及、TMflow remote/Listen、speed override 5–10%，並先在 RViz 確認當次完整軌跡。異常時立即使用 TMflow Stop 或實體急停，不要依賴 Python 例外或逾時。</aside>
+  <nav aria-label="目錄"><strong>目錄</strong><ol><li><a href="#requirements">系統需求</a></li><li><a href="#install">安裝（每台電腦一次）</a></li><li><a href="#verify">安裝驗證</a></li><li><a href="#offline">離線規劃檢查</a></li><li><a href="#safety">每次操作前</a></li><li><a href="#robot">Terminal 1 — TM5/MoveIt</a></li><li><a href="#camera">Terminal 2 — D435i</a></li><li><a href="#gripper">Terminal 3 — 夾爪</a></li><li><a href="#coordinator">Terminal 4 — 抓取</a></li><li><a href="#outline">框選視窗</a></li><li><a href="#stop">停止與故障排查</a></li><li><a href="#update">更新到新版</a></li></ol></nav>
+
+  <section id="requirements"><h2>0. 系統需求</h2>
+    <table>
+      <tr><th>項目</th><th>需求</th></tr>
+      <tr><td>作業系統</td><td>Ubuntu 22.04，有桌面環境（框選視窗需要 <code>DISPLAY</code>，不建議透過 SSH 操作）</td></tr>
+      <tr><td>ROS</td><td>ROS 2 Humble（<code>ros-humble-desktop</code>），依<a href="https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html">官方安裝說明</a>安裝</td></tr>
+      <tr><td>Python 環境</td><td><a href="https://docs.astral.sh/uv/">uv</a>（下一節安裝）；不需要 Conda</td></tr>
+      <tr><td>硬體</td><td>TM5-700（預設 <code>192.168.1.33</code>）、D435i（USB 3）、夾爪 Arduino（預設 <code>/dev/ttyUSB0</code>）、DICT_4X4_50 ID 0、黑框邊長 50 mm 的 ArUco marker</td></tr>
+    </table>
+  </section>
+
+  <section id="install"><h2>1. 安裝（每台電腦一次）</h2>
+    <p><strong>1-1. 基本工具與 uv</strong></p>
+    <pre><code>sudo apt-get update
+sudo apt-get install -y git curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+uv --version</code></pre>
+    <p><strong>1-2. 下載 repo（必須加 <code>--recursive</code> 才會一起下載 TM driver）</strong></p>
+    <pre><code>cd ~
+git clone --recursive https://github.com/Patrick-zhuyanxun/tm5-manual-book-grasp.git
+cd ~/tm5-manual-book-grasp</code></pre>
+    <p><strong>1-3. 一鍵安裝</strong>：apt 安裝 MoveIt／Pilz／RealSense 等 ROS 套件、rosdep、uv venv、colcon build。會要求 sudo 密碼，第一次約需 10–20 分鐘。</p>
+    <pre><code>cd ~/tm5-manual-book-grasp
+./scripts/setup.sh</code></pre>
+    <aside class="info">若這台電腦已自行從原始碼安裝 RealSense、MoveIt 等套件（例如原本的 <code>book_grasp_ws</code> 開發機），改用 <code>./scripts/setup.sh --no-apt</code> 跳過 apt 與 rosdep，並在執行前先 source 提供這些套件的 workspace。</aside>
+    <p><strong>1-4. 夾爪 serial 權限</strong>（執行後要登出再登入才生效）</p>
+    <pre><code>sudo usermod -aG dialout $USER</code></pre>
+    <p><strong>1-5. 之後每開一個新 terminal 都先執行</strong>（ROS → 本 workspace → uv venv，順序固定）：</p>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh</code></pre>
+    <p>不要再 <code>conda activate</code>；Conda 的 Python 或 OpenCV 會蓋掉 venv，導致 <code>cv_bridge</code> 或 ArUco 失效。</p>
+  </section>
+
+  <section id="verify"><h2>2. 安裝驗證（不需要硬體）</h2>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+which python3
+python3 -c "import numpy, cv2, rclpy, cv_bridge; print('numpy', numpy.__version__, '| opencv', cv2.__version__, '| aruco', hasattr(cv2.aruco, 'estimatePoseSingleMarkers'))"
+python3 -m pytest
+ros2 pkg executables tm5_manual_book_grasp</code></pre>
+    <p>預期：</p>
+    <ul>
+      <li><code>which python3</code> 指向 <code>~/tm5-manual-book-grasp/.venv/bin/python3</code>。</li>
+      <li>numpy 為 1.26.x、opencv 為 4.11.x、aruco 為 <code>True</code>。</li>
+      <li>pytest 全部 passed。</li>
+      <li>executables 列出 <code>manual_book_grasp.py</code>、<code>gripper_node.py</code> 等 5 個程式。</li>
+    </ul>
+  </section>
+
+  <section id="offline"><h2>3. 離線規劃檢查（選用，不連手臂）</h2>
+    <p>不給 <code>robot_ip</code> 時只啟動 MoveIt 與 RViz，以固定關節值代替手臂，不會執行任何軌跡。可用來確認模型、碰撞與 RViz 正常。</p>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 launch tm5_manual_book_grasp tm5-700_with_gripper.launch.py</code></pre>
+    <p>終端出現 <code>You can start planning now!</code>、RViz 顯示 TM5 + 夾爪 + D435i 即正常。用 <kbd>Ctrl-C</kbd> 結束。</p>
+  </section>
+
+  <section id="safety"><h2>4. 每次操作前</h2>
+    <ul>
+      <li>確認銘牌是 TM5-700；不得套用 TM12X 教點、TCP、payload 或 hand-eye。</li>
+      <li>確認工作區無人、急停可及、線材不會勾住；TMflow 無 robot error、e-stop 或 safeguard fault；TMflow 為 remote/Listen，speed override 5–10%。</li>
+      <li>重新確認 TM5 TCP、payload、重心、D435i hand-eye、碰撞模型、夾爪零點。</li>
+      <li>ArUco ID 0 貼在書架上，從拍攝位置看得到；目標書左右兩側都要完整在畫面內。</li>
+    </ul>
+    <pre><code>ping -c 3 192.168.1.33
+lsusb | grep -i intel
+ls -l /dev/ttyUSB0</code></pre>
+  </section>
+
+  <section id="robot"><h2>5. Terminal 1 — TM5 driver、模型、MoveIt、RViz</h2>
+    <aside class="notice">此命令會連接真實 TM5。確認第 4 節完成後才執行。</aside>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 launch tm5_manual_book_grasp tm5-700_with_gripper.launch.py robot_ip:=192.168.1.33</code></pre>
+    <p>另開 terminal 檢查：</p>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 topic echo --once /feedback_states
+ros2 topic echo --once /joint_states
+ros2 action list -t
+ros2 run tf2_ros tf2_echo base gripper_tip</code></pre>
+    <p>確認 feedback、六軸 <code>/joint_states</code>、<code>/move_action</code>、TF 都是新鮮且唯一的。夾爪尚未啟動時 <code>motor</code> 缺少是正常的，不可用 0 猜補。</p>
+  </section>
+
+  <section id="camera"><h2>6. Terminal 2 — D435i</h2>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 launch realsense2_camera rs_launch.py camera_name:=camera camera_namespace:=camera depth_module.depth_profile:=1280x720x30 rgb_camera.color_profile:=1280x720x30 pointcloud.enable:=true align_depth.enable:=true enable_sync:=true clip_distance:=0.8</code></pre>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 topic list | grep '^/camera/camera/'
+ros2 topic echo --once /camera/camera/color/camera_info
+ros2 topic echo --once /camera/camera/aligned_depth_to_color/camera_info</code></pre>
+    <p>只能有一台 D435i，color、aligned depth、CameraInfo 都在 <code>/camera/camera/...</code>。</p>
+  </section>
+
+  <section id="gripper"><h2>7. Terminal 3 — 夾爪</h2>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 run tm5_manual_book_grasp gripper_node.py --ros-args -p serial_port:=/dev/ttyUSB0 -p baud_rate:=115200</code></pre>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 topic info --verbose /gripper/gap
+ros2 topic info --verbose /gripper/command</code></pre>
+    <p>兩者都要有 subscriber，否則 coordinator 會拒絕執行。Arduino 指令只代表「已送出角度命令」，不是力或位置回授。</p>
+  </section>
+
+  <section id="coordinator"><h2>8. Terminal 4 — 抓取 coordinator</h2>
+    <p><strong>8-1. 乾跑（預設，不會移動）</strong>：框選、計算目標、在 RViz 顯示 approach PTP，然後停止。</p>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 run tm5_manual_book_grasp manual_book_grasp.py --ros-args \
+  --params-file install/tm5_manual_book_grasp/share/tm5_manual_book_grasp/config/manual_grasp.yaml</code></pre>
+    <p>在 RViz 檢查：<code>Manual Grasp Debug</code> 影像中的框與插入點是否在目標書右緣、規劃軌跡是否合理。偵錯圖存在 <code>/tmp/book_grasp_initial.png</code>。</p>
+
+    <p><strong>8-2. 完整抓取（會移動手臂與夾爪）</strong></p>
+    <aside class="notice">執行前必須完成第 4–7 節，並已用 8-1 確認同一擺設的 RViz 軌跡。<code>motion_enabled:=true</code> 會授權完整序列：移到 stand-off、插入書縫、夾緊、抽出、回到起點。</aside>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 run tm5_manual_book_grasp manual_book_grasp.py --ros-args \
+  --params-file install/tm5_manual_book_grasp/share/tm5_manual_book_grasp/config/manual_grasp.yaml \
+  -p motion_enabled:=true</code></pre>
+    <p>執行過程：</p>
+    <ol>
+      <li>跳出框選視窗 → 框出目標書（見第 9 節）。</li>
+      <li>RViz 顯示 approach 軌跡 → 終端提示時按 <kbd>Enter</kbd>，這是唯一一次移動確認。</li>
+      <li>到 70 mm stand-off 後等待 1.5 s，用新畫面驗證，再自動：張開夾爪 → LIN 插入 102 mm → <code>H</code>、<code>T</code> 夾緊 → LIN 向外 232 mm 並上抬 40 mm → PTP 回到起點。</li>
+      <li>回到起點時夾爪仍夾著。確認書已被支撐後，<strong>再按一次 <kbd>Enter</kbd></strong> 才會送 <code>Y</code>、<code>O</code> 釋放。</li>
+    </ol>
+    <p>任一安全閘門（ArUco、TF、深度、MoveIt、碰撞、J5/J6、TCP 路徑）失敗時流程會停止。不要改用其他程式或直接對 TM 發座標。</p>
+  </section>
+
+  <section id="outline"><h2>9. 框選視窗操作</h2>
+    <table>
+      <tr><th>操作</th><th>按鍵</th></tr>
+      <tr><td>新增角點（共 4 個，順序不限）</td><td>滑鼠左鍵</td></tr>
+      <tr><td>復原上一點</td><td>滑鼠右鍵 或 <kbd>Backspace</kbd></td></tr>
+      <tr><td>確認</td><td><kbd>Enter</kbd> 或 <kbd>Space</kbd></td></tr>
+      <tr><td>取消（流程中止，不移動）</td><td><kbd>C</kbd> 或 <kbd>Esc</kbd></td></tr>
+    </table>
+    <ul>
+      <li>只框<strong>目標書</strong>的書背；<strong>右側兩點要精準點在目標書右緣</strong>，插入位置就由這條邊決定。</li>
+      <li>框不可碰到畫面左右邊界，否則會被拒絕。</li>
+      <li>若畫面有偵測到 ArUco ID 0，視窗中會畫出 marker 外框；沒看到外框代表 marker 不在視野內或角度太斜。</li>
+      <li>框選逾時 300 秒。只有第一張畫面需要框選，之後的畫面會自動沿用。</li>
+    </ul>
+  </section>
+
+  <section id="stop"><h2>10. 停止與故障排查</h2>
+    <ol>
+      <li>正常停止：先在 coordinator 按 <kbd>Ctrl-C</kbd>，再依序停止夾爪、相機、Terminal 1。</li>
+      <li><kbd>Ctrl-C</kbd> 不會鬆開夾爪。夾著書時先確認書已被支撐，再處理夾爪。</li>
+      <li>異常運動、碰撞、線材勾住或軟體無回應：立即用 TMflow Stop／實體急停。</li>
+      <li>工具可能還在書縫內時，不要直接下斜向回位指令；從 TMflow 沿插入軸退出。</li>
+    </ol>
+    <table>
+      <tr><th>症狀</th><th>處理</th></tr>
+      <tr><td><code>env.sh</code> 顯示 workspace 未建置或 uv 環境不存在</td><td>重新執行 <code>./scripts/setup.sh</code>。</td></tr>
+      <tr><td><code>No module named cv_bridge</code>、numpy ABI 錯誤、<code>estimatePoseSingleMarkers</code> 不存在</td><td>確認沒有 activate Conda、<code>which python3</code> 指向 <code>.venv</code>；必要時刪除 <code>.venv</code> 後重跑 <code>setup.sh --no-apt</code>。</td></tr>
+      <tr><td>Terminal 1 拒絕啟動，訊息提到 lock</td><td>已有另一個 TM5 MoveIt launch 在執行。先關掉它（<code>ps aux | grep tm5-700_with_gripper</code>）。</td></tr>
+      <tr><td>框選視窗沒有出現</td><td>需在本機桌面 terminal 執行，確認 <code>echo $DISPLAY</code> 有值。</td></tr>
+      <tr><td>夾爪 <code>Permission denied</code></td><td>確認已加入 <code>dialout</code> 群組並重新登入；確認 port 名稱（<code>ls /dev/ttyUSB* /dev/ttyACM*</code>）。</td></tr>
+      <tr><td>找不到 <code>src/tmr_ros2</code> 內容</td><td>clone 時漏了 <code>--recursive</code>：執行 <code>git submodule update --init --recursive</code>。</td></tr>
+    </table>
+    <pre><code>cd ~/tm5-manual-book-grasp
+source scripts/env.sh
+ros2 topic echo --once /feedback_states
+ros2 topic list | grep '^/camera/camera/'
+ros2 run tf2_ros tf2_echo base gripper_tip
+ros2 action list -t</code></pre>
+  </section>
+
+  <section id="update"><h2>11. 更新到新版</h2>
+    <pre><code>cd ~/tm5-manual-book-grasp
+git pull
+git submodule update --init --recursive
+./scripts/setup.sh --no-apt</code></pre>
+    <p>更新後重新開啟所有 terminal 並 <code>source scripts/env.sh</code>。若新版增加了 apt 相依套件，改跑不帶 <code>--no-apt</code> 的 <code>./scripts/setup.sh</code>。</p>
+  </section>
+
+  <script>
+    async function copyCode(button, code) {
+      const text = code.innerText;
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+        else { const area = document.createElement("textarea"); area.value = text; area.setAttribute("readonly", ""); area.style.position = "fixed"; area.style.opacity = "0"; document.body.appendChild(area); area.select(); if (!document.execCommand("copy")) throw new Error("copy failed"); area.remove(); }
+        button.textContent = "已複製";
+      } catch (error) { button.textContent = "複製失敗"; }
+      window.setTimeout(() => { button.textContent = "複製"; }, 1500);
+    }
+    document.querySelectorAll("pre > code").forEach((code) => { const button = document.createElement("button"); button.type = "button"; button.className = "copy-button"; button.textContent = "複製"; button.setAttribute("aria-label", "複製這段程式"); button.addEventListener("click", () => copyCode(button, code)); code.parentElement.appendChild(button); });
+  </script>
+</body>
+</html>

@@ -34,6 +34,8 @@
 
 ## 安裝
 
+完整的逐步安裝與操作指令（含驗證與故障排查、每段可一鍵複製）在 [`Manual.html`](Manual.html)：clone 後以瀏覽器開啟 `xdg-open Manual.html`。
+
 ```bash
 git clone --recursive https://github.com/Patrick-zhuyanxun/tm5-manual-book-grasp.git
 cd tm5-manual-book-grasp
