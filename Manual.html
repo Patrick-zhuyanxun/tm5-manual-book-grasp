@@ -45,13 +45,33 @@ uv --version</code></pre>
     <pre><code>cd ~
 git clone --recursive https://github.com/Patrick-zhuyanxun/tm5-manual-book-grasp.git
 cd ~/tm5-manual-book-grasp</code></pre>
-    <p><strong>1-3. 一鍵安裝</strong>：apt 安裝 MoveIt／Pilz／RealSense 等 ROS 套件、rosdep、uv venv、colcon build。會要求 sudo 密碼，第一次約需 10–20 分鐘。</p>
+    <p><strong>1-3. 安裝前檢查（唯讀，不會安裝或修改任何東西）</strong></p>
+    <aside class="info">若這台電腦已經有其他 workspace 提供 TM driver、RealSense 或 MoveIt（例如從原始碼編譯的），請<strong>先 source 那個 workspace</strong>（或確認已寫在 <code>~/.bashrc</code>），檢查才會把它算成「已安裝」，不會重複安裝 apt 版本。</aside>
+    <pre><code>cd ~/tm5-manual-book-grasp
+./scripts/check_env.sh</code></pre>
+    <table>
+      <tr><th>標記</th><th>意義</th></tr>
+      <tr><td><code>[OK]</code></td><td>已具備；若顯示「來自 …」代表由其他 workspace 提供</td></tr>
+      <tr><td><code>[INFO]</code></td><td>僅說明，例如本機已有 TM driver：本 repo 會另外建置含 patch 的 fork 並覆蓋（overlay），<strong>不會修改原本的安裝</strong></td></tr>
+      <tr><td><code>[MISSING]</code></td><td>缺少，下一步 <code>setup.sh</code> 可以安裝（會先詢問）</td></tr>
+      <tr><td><code>[WARN]</code></td><td>需要注意但不擋安裝，例如 Conda 啟用中、不在 dialout 群組</td></tr>
+      <tr><td><code>[BLOCKER]</code></td><td>必須先手動處理，例如沒有 ROS 2 Humble、沒有 uv</td></tr>
+    </table>
+    <p>最後一行會寫出結果：「相依套件都已具備」或「缺少 N 個 apt 套件：…」。</p>
+
+    <p><strong>1-4. 安裝</strong>：只安裝 1-3 列出的缺少套件，然後建立 uv venv、colcon build。</p>
     <pre><code>cd ~/tm5-manual-book-grasp
 ./scripts/setup.sh</code></pre>
-    <aside class="info">若這台電腦已自行從原始碼安裝 RealSense、MoveIt 等套件（例如原本的 <code>book_grasp_ws</code> 開發機），改用 <code>./scripts/setup.sh --no-apt</code> 跳過 apt 與 rosdep，並在執行前先 source 提供這些套件的 workspace。</aside>
-    <p><strong>1-4. 夾爪 serial 權限</strong>（執行後要登出再登入才生效）</p>
+    <ul>
+      <li>每次要用 sudo 之前都會詢問 <code>[y/N]</code>，回答 N 就停止，不會安裝任何東西。</li>
+      <li>安裝前會顯示 apt 預覽：要新增哪些套件；若有已安裝的套件會被<strong>升級</strong>或<strong>移除</strong>，會以 WARNING 列出，確認後才執行。</li>
+      <li>使用 <code>apt-get install --no-upgrade</code>：已安裝的 ROS、MoveIt、TM 套件不會被升級。</li>
+      <li>若所有相依都已具備，完全不會呼叫 apt 或 sudo。</li>
+    </ul>
+    <aside class="info">若不想讓腳本碰 apt：<code>./scripts/setup.sh --no-apt</code>。缺東西時會直接停止並列出缺少項目，由你自行處理。</aside>
+    <p><strong>1-5. 夾爪 serial 權限</strong>（執行後要登出再登入才生效）</p>
     <pre><code>sudo usermod -aG dialout $USER</code></pre>
-    <p><strong>1-5. 之後每開一個新 terminal 都先執行</strong>（ROS → 本 workspace → uv venv，順序固定）：</p>
+    <p><strong>1-6. 之後每開一個新 terminal 都先執行</strong>（ROS → 本 workspace → uv venv，順序固定）：</p>
     <pre><code>cd ~/tm5-manual-book-grasp
 source scripts/env.sh</code></pre>
     <p>不要再 <code>conda activate</code>；Conda 的 Python 或 OpenCV 會蓋掉 venv，導致 <code>cv_bridge</code> 或 ArUco 失效。</p>
@@ -181,6 +201,7 @@ ros2 run tm5_manual_book_grasp manual_book_grasp.py --ros-args \
     </ol>
     <table>
       <tr><th>症狀</th><th>處理</th></tr>
+      <tr><td>不確定缺什麼、或安裝後仍有問題</td><td>先執行 <code>./scripts/check_env.sh</code>，依 <code>[MISSING]</code>／<code>[BLOCKER]</code> 處理。</td></tr>
       <tr><td><code>env.sh</code> 顯示 workspace 未建置或 uv 環境不存在</td><td>重新執行 <code>./scripts/setup.sh</code>。</td></tr>
       <tr><td><code>No module named cv_bridge</code>、numpy ABI 錯誤、<code>estimatePoseSingleMarkers</code> 不存在</td><td>確認沒有 activate Conda、<code>which python3</code> 指向 <code>.venv</code>；必要時刪除 <code>.venv</code> 後重跑 <code>setup.sh --no-apt</code>。</td></tr>
       <tr><td>Terminal 1 拒絕啟動，訊息提到 lock</td><td>已有另一個 TM5 MoveIt launch 在執行。先關掉它（<code>ps aux | grep tm5-700_with_gripper</code>）。</td></tr>
@@ -200,8 +221,8 @@ ros2 action list -t</code></pre>
     <pre><code>cd ~/tm5-manual-book-grasp
 git pull
 git submodule update --init --recursive
-./scripts/setup.sh --no-apt</code></pre>
-    <p>更新後重新開啟所有 terminal 並 <code>source scripts/env.sh</code>。若新版增加了 apt 相依套件，改跑不帶 <code>--no-apt</code> 的 <code>./scripts/setup.sh</code>。</p>
+./scripts/setup.sh</code></pre>
+    <p>沒有缺少套件時不會呼叫 apt；若新版增加了相依套件，會照 1-4 的方式先詢問。更新後重新開啟所有 terminal 並 <code>source scripts/env.sh</code>。</p>
   </section>
 
   <script>

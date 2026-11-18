@@ -39,17 +39,21 @@
 ```bash
 git clone --recursive https://github.com/Patrick-zhuyanxun/tm5-manual-book-grasp.git
 cd tm5-manual-book-grasp
+./scripts/check_env.sh   # 唯讀檢查：列出已安裝／缺少的項目，不做任何修改
 ./scripts/setup.sh
 ```
+
+若 TM driver、RealSense 或 MoveIt 是由其他 workspace 提供，執行前先 source 該 workspace，檢查才會把它算成已安裝。
 
 `setup.sh` 會：
 
 1. 拉取 `src/tmr_ros2` submodule（[fork](https://github.com/Patrick-zhuyanxun/tmr_ros2/tree/tm5-manual-book-grasp)，見下方說明）。
-2. 以 apt 安裝 MoveIt、Pilz、RealSense 等 ROS 套件並執行 `rosdep install`（需要 sudo）。
-3. 用 uv 在 **ROS 的系統 Python 3.10** 上建立 `.venv`（`--system-site-packages`，才能使用 `rclpy`／`cv_bridge`），並依 `uv.lock` 安裝 `numpy<2`、`opencv-contrib-python`、`scipy`、`pyserial`。
-4. `colcon build --symlink-install --packages-up-to tm5_manual_book_grasp`。
+2. 執行 `check_env.sh`：以目前 shell 已 source 的 workspace 加上 `/opt/ros/humble` 檢查關鍵 ROS 套件，再用 `rosdep check` 檢查所有 `package.xml` 相依（略過 TM MoveIt config 宣告但 Humble 無法安裝、本專案也不使用的 `gazebo_ros_control`、`warehouse_ros_mongo`）。
+3. **只安裝缺少的 apt 套件**：每次 sudo 前詢問 `[y/N]`，安裝前顯示 apt 預覽並警告任何會被升級或移除的套件；使用 `--no-upgrade`，不升級已安裝的套件。全部具備時完全不呼叫 apt。
+4. 用 uv 在 **ROS 的系統 Python 3.10** 上建立 `.venv`（`--system-site-packages`，才能使用 `rclpy`／`cv_bridge`），並依 `uv.lock` 安裝 `numpy<2`、`opencv-contrib-python`、`scipy`、`pyserial`。
+5. `colcon build --symlink-install --packages-up-to tm5_manual_book_grasp`。若本機已有 TM driver，本 repo 的 fork 會覆蓋（overlay）它，不修改原本的安裝。
 
-若電腦已自行從原始碼安裝 RealSense／MoveIt 等相依套件，可用 `./scripts/setup.sh --no-apt` 跳過 apt 與 rosdep。
+選項：`--check` 只檢查；`--no-apt` 不碰 apt，缺東西就停止；`--yes` 不詢問（仍不升級已安裝套件）。
 
 之後**每個 terminal** 都先執行：
 
