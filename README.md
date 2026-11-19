@@ -137,6 +137,7 @@ src/tm5_manual_book_grasp/
   scripts/tm_joint_state_adapter.py、offline_joint_state_publisher.py、tm_moveit_graph_preflight.py
   launch/ urdf/ gripper_urdf/ config/   TM5-700 + 夾爪 + D435i 模型、SRDF、關節限制、RViz
 src/tmr_ros2/                    TM driver submodule（fork）
+firmware/gripper_controller/     夾爪 Arduino 程式（G/H/T/Y/O/S 指令，115200 baud），燒錄步驟見 Manual.html 第 7 節
 tests/                           pytest（不需硬體）
 ```
 

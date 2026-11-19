@@ -141,6 +141,29 @@ ros2 topic echo --once /camera/camera/aligned_depth_to_color/camera_info</code><
   </section>
 
   <section id="gripper"><h2>7. Terminal 3 — 夾爪</h2>
+    <p><strong>7-1. 燒錄 Arduino 程式（第一次使用或更換 Arduino 時才需要）</strong></p>
+    <p>程式在 <code>firmware/gripper_controller/gripper_controller.ino</code>。它支援 coordinator 會用到的所有指令：</p>
+    <table>
+      <tr><th>指令</th><th>動作</th></tr>
+      <tr><td><code>G &lt;mm&gt;</code></td><td>移到指定開口</td></tr>
+      <tr><td><code>H &lt;mm&gt;</code></td><td>依書本厚度兩段式夾緊</td></tr>
+      <tr><td><code>T</code> / <code>Y</code></td><td>開啟／關閉高壓電（pin 6）</td></tr>
+      <tr><td><code>O</code></td><td>完全打開（最大開口 36.4 mm）</td></tr>
+      <tr><td><code>S</code> / <code>?</code></td><td>查詢狀態／顯示說明</td></tr>
+    </table>
+    <aside class="notice"><strong>Arduino 一上電或重設，夾爪就會立刻轉到張開角度</strong>；開啟 Serial Monitor 或 <code>gripper_node.py</code> 連線也可能造成重設。燒錄與連線前，手指與物品先離開夾爪。</aside>
+    <ol>
+      <li>安裝 <a href="https://www.arduino.cc/en/software">Arduino IDE 2</a>。<code>Servo</code> library 是內建的，不需要另外安裝。</li>
+      <li>用 Arduino IDE 開啟 <code>~/tm5-manual-book-grasp/firmware/gripper_controller/gripper_controller.ino</code>。</li>
+      <li>Tools → Board 選你的板子。原開發機上次選的是 <strong>Arduino Nano（AVR）</strong>；若上傳失敗，Processor 改選 <code>ATmega328P (Old Bootloader)</code>。</li>
+      <li>Tools → Port 選 Arduino 所在的 port（用下方指令確認），按 Upload。</li>
+      <li>開 Serial Monitor（115200 baud、換行字元選 Newline），應看到 <code>=== ROS2 夾爪控制器啟動 ===</code>。輸入 <code>S</code> 查詢狀態。<strong>關閉 Serial Monitor 後</strong>才能啟動 <code>gripper_node.py</code>，否則 port 會被占用。</li>
+    </ol>
+    <pre><code>ls -l /dev/serial/by-id/
+ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null</code></pre>
+    <p>常見的 USB 轉接晶片（如 CH340、CH9102）可能顯示為 <code>/dev/ttyUSB0</code> 或 <code>/dev/ttyACM0</code>。下面指令的 <code>serial_port</code> 要改成實際的 port。</p>
+
+    <p><strong>7-2. 啟動夾爪節點</strong></p>
     <pre><code>cd ~/tm5-manual-book-grasp
 source scripts/env.sh
 ros2 run tm5_manual_book_grasp gripper_node.py --ros-args -p serial_port:=/dev/ttyUSB0 -p baud_rate:=115200</code></pre>
